@@ -12,6 +12,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type NamedStream struct {
+	Name   string   `json:"name"`
+	Stream StreamST `json:"stream"`
+}
+
 func serveHTTP() {
 	router := gin.Default()
 	gin.SetMode(gin.DebugMode)
@@ -36,6 +41,18 @@ func serveHTTP() {
 			"version":  time.Now().String(),
 		})
 	})
+
+	router.POST("/add_stream", func(c *gin.Context) {
+		var request NamedStream
+		if err := c.BindJSON(&request); err != nil {
+			log.Println(err)
+			return
+		}
+		log.Print("Adding new stream")
+		log.Println(request)
+		Config.Add(request)
+	})
+
 	router.GET("/play/hls/:suuid/index.m3u8", PlayHLS)
 	router.GET("/play/hls/:suuid/segment/:seq/file.ts", PlayHLSTS)
 	router.StaticFS("/static", http.Dir("web/static"))
@@ -57,7 +74,7 @@ func PlayHLS(c *gin.Context) {
 			log.Println(err)
 			return
 		}
-		if seq >= 6 {
+		if seq >= 1 {
 			_, err := c.Writer.Write([]byte(index))
 			if err != nil {
 				log.Println(err)

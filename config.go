@@ -71,12 +71,16 @@ type viewer struct {
 func (element *ConfigST) RunIFNotRun(uuid string) {
 	element.mutex.Lock()
 	defer element.mutex.Unlock()
+	log.Println("Running stream for UUID: " + uuid)
 	if tmp, ok := element.Streams[uuid]; ok {
-		if tmp.OnDemand && !tmp.RunLock {
+		if !tmp.RunLock {
+			log.Println("Looking for stream on: " + tmp.URL)
 			tmp.RunLock = true
 			element.Streams[uuid] = tmp
 			go RTSPWorkerLoop(uuid, tmp.URL, tmp.OnDemand)
 		}
+	} else {
+		log.Println("Stream not found")
 	}
 }
 
@@ -98,6 +102,15 @@ func (element *ConfigST) HasViewer(uuid string) bool {
 		return true
 	}
 	return false
+}
+
+func (element *ConfigST) Add(stream NamedStream) string {
+	element.mutex.Lock()
+	defer element.mutex.Unlock()
+	stream.Stream.hlsSegmentBuffer = make(map[int]Segment)
+	stream.Stream.Cl = make(map[string]viewer)
+	element.Streams[stream.Name] = stream.Stream
+	return stream.Name
 }
 
 func loadConfig() *ConfigST {
